@@ -382,12 +382,16 @@ H5P.VideoMedial = (function ($) {
    */
 
   var getId = function (url) {
-    // MEDIAL is self hosted so there is no consistent domain to match here. So look for a URL that is characteristic of MEDIAL
+    // MEDIAL is self hosted so there is no consistent domain to match here. So look for a URL that is characteristic of a share link
     url = new URL(url);
     var split = url.pathname.split('/');
 
-    if (split.length == 3 && split[1] == "Player") {
-      return split[2];
+    // Part 1 will be "Player", part two should be 8 alpha numeric characters.
+    if (split.length == 3 && split[1] == "Player" && split[2].length == 8) {
+      var pattern = new RegExp('^[a-zA-Z0-9]+$');
+      if (pattern.test()) {
+        return split[2];
+      }
     }
   };
 
