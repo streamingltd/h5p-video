@@ -45,7 +45,7 @@ H5P.VideoMedial = (function ($) {
             id: id,
             src: videoPath,
             width: width,
-            height: (width * (9/16)) + 6,
+            height: (width * (9/16)) + 8,
             allow: "accelerometer; fullscreen"
         });
 
@@ -53,21 +53,25 @@ H5P.VideoMedial = (function ($) {
 
       window.document.body.appendChild(Object.assign(document.createElement('script'), {
         type: 'text/javascript',
-        src: 'https://cdn.embed.ly/player-0.1.0.js',
+        src: 'https://cdn.embed.ly/player-0.1.0.min.js',
         onload: () => playerJSLoaded()
       }));
     }
 
     var playerJSLoaded = function() {
+      // Player.js doesn't like the object returned by JQuery $('#'+id), so use a standard call here.
       var frame = document.getElementById(id);
       player = new playerjs.Player(frame);
 
       player.on('ready', () => {
+        console.log('Player.js ready');
         self.trigger('loaded');
         self.trigger('ready');
         // Trigger stateChange will cause the Interactive video overlay to be shown.
         self.trigger('stateChange');
       });
+
+      console.log('Player.js loaded');
     };
 
 
@@ -127,12 +131,12 @@ H5P.VideoMedial = (function ($) {
      * @public
      */
     self.play = function () {
-      if (!player || !player.playVideo) {
+      if (!player || !player.supports('method', 'play')) {
         self.on('ready', self.play);
         return;
       }
 
-      player.adapter.play();
+      player.play();
     };
 
     /**
@@ -142,11 +146,11 @@ H5P.VideoMedial = (function ($) {
      */
     self.pause = function () {
       self.off('ready', self.play);
-      if (!player || !player.pauseVideo) {
+      if (!player || !player.supports('method', 'pause')) {
         return;
       }
       
-      player.adapter.pause();
+      player.pause();
     };
 
     /**
@@ -156,11 +160,11 @@ H5P.VideoMedial = (function ($) {
      * @param {Number} time
      */
     self.seek = function (time) {
-      if (!player || !player.seekTo) {
+      if (!player || !player.supports('method', 'setCurrentTime')) {
         return;
       }
       
-      player.adapter.setCurrentTime(time);
+      player.setCurrentTime(time);
     };
 
     /**
@@ -170,11 +174,11 @@ H5P.VideoMedial = (function ($) {
      * @returns {Number}
      */
     self.getCurrentTime = function () {
-      if (!player || !player.getCurrentTime) {
+      if (!player || !player.supports('method', 'getCurrentTime')) {
         return;
       }
       
-      return player.adapter.getCurrentTime();
+      return player.getCurrentTime();
     };
 
     /**
@@ -184,11 +188,11 @@ H5P.VideoMedial = (function ($) {
      * @returns {Number}
      */
     self.getDuration = function () {
-      if (!player || !player.getDuration) {
+      if (!player || !player.supports('method', 'getDuration')) {
         return;
       }
       
-      return player.adapter.getDuration();
+      return player.getDuration();
     };
 
     /**
@@ -207,11 +211,11 @@ H5P.VideoMedial = (function ($) {
      * @public
      */
     self.mute = function () {
-      if (!player || !player.mute) {
+      if (!player || !player.supports('method', 'mute')) {
         return;
       }
 
-      player.adapter.mute();
+      player.mute();
     };
 
     /**
@@ -220,11 +224,11 @@ H5P.VideoMedial = (function ($) {
      * @public
      */
     self.unMute = function () {
-      if (!player || !player.unMute) {
+      if (!player || !player.supports('method', 'unmute')) {
         return;
       }
       
-      player.adapter.unmute();
+      player.unmute();
     };
 
     /**
@@ -234,11 +238,11 @@ H5P.VideoMedial = (function ($) {
      * @returns {Boolean}
      */
     self.isMuted = function () {
-      if (!player || !player.isMuted) {
+      if (!player || !player.supports('method', 'getMuted')) {
         return;
       }
       
-      return player.adapter.getMuted();
+      return player.getMuted();
     };
 
     /**
@@ -248,11 +252,11 @@ H5P.VideoMedial = (function ($) {
      * @returns {Number} Between 0 and 100.
      */
     self.getVolume = function () {
-      if (!player || !player.getVolume) {
+      if (!player || !player.supports('method', 'getVolume')) {
         return;
       }
       
-      return player.adapter.getVolume();
+      return player.getVolume();
     };
 
     /**
@@ -262,11 +266,11 @@ H5P.VideoMedial = (function ($) {
      * @param {Number} level Between 0 and 100.
      */
     self.setVolume = function (level) {
-      if (!player || !player.setVolume) {
+      if (!player || !player.supports('method', 'setVolume')) {
         return;
       }
 
-      player.adapter.setVolume(level);
+      player.setVolume(level);
     };
 
     /**
@@ -276,11 +280,11 @@ H5P.VideoMedial = (function ($) {
      * @returns {Array} available playback rates
      */
     self.getPlaybackRates = function () {
-      if (!player || !player.getAvailablePlaybackRates) {
+      if (!player) {
         return;
       }
 
-      // TODO Do we have any other playback rates?
+      // Player.js doesn't support playback rates, so send 1.
       return [1];
     };
 
@@ -291,11 +295,11 @@ H5P.VideoMedial = (function ($) {
      * @returns {Number} such as 0.25, 0.5, 1, 1.25, 1.5 and 2
      */
     self.getPlaybackRate = function () {
-      if (!player || !player.getPlaybackRate) {
+      if (!player) {
         return;
       }
 
-      // TODO this is assuming 1 for now. Need to get actual figure.
+      // Player.js doesn't support playback rates, so send 1.
       return 1;
     };
 
@@ -307,11 +311,7 @@ H5P.VideoMedial = (function ($) {
      * @params {Number} suggested rate that may be rounded to supported values
      */
     self.setPlaybackRate = function (newPlaybackRate) {
-      if (!player || !player.setPlaybackRate) {
-        return;
-      }
-
-      // TODO actually set the rate here
+      // Player.js doesn't support playback rates, so do nothing
     };
 
     /**
@@ -320,7 +320,7 @@ H5P.VideoMedial = (function ($) {
      * @param {H5P.Video.LabelValue} Captions track to show during playback
      */
     self.setCaptionsTrack = function (track) {
-      // Not currently supported
+      // Player.js doesn't support captions track calls
     };
 
     /**
@@ -329,10 +329,10 @@ H5P.VideoMedial = (function ($) {
      * @return {H5P.Video.LabelValue} Captions track
      */
     self.getCaptionsTrack = function () {
-      // Not currently supported
+      // Player.js doesn't support captions track calls
     };
 
-    // Respond to resize events by setting the YT player size.
+    // Respond to resize events by setting the player size.
     self.on('resize', function () {
       if (!$wrapper.is(':visible')) {
         return;
@@ -351,18 +351,12 @@ H5P.VideoMedial = (function ($) {
       });
 
       var width = $wrapper[0].clientWidth;
-      var height = options.fit ? $wrapper[0].clientHeight : (width * (9/16));
+      var height = options.fit ? $wrapper[0].clientHeight : ((width * (9/16)) + 8);
       
       // Validate height before setting
       if (height > 0) {
-        // Set size
-        $wrapper.css({
-          width: width + 'px',
-          height: height + 'px'
-        });
-
-        // TODO Probably need to change this.
-        //player.setSize(width, height);
+        $('#'+id).width(width);
+        $('#'+id).height(height);
       }
     });
   }
