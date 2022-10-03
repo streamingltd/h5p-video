@@ -15,7 +15,7 @@ H5P.VideoMedial = (function ($) {
     var player;
     var videoPath;
     var playbackRate = 1;
-    var duration, position, volume, isMuted;
+    var duration, position, volume, isMuted, buffered;
     var id = 'h5p-medial-' + numInstances;
     numInstances++;
 
@@ -70,7 +70,6 @@ H5P.VideoMedial = (function ($) {
     };
 
     var timeupdate = function(data) {
-      console.log(data);
       duration = data.duration;
       position = data.seconds;
     };
@@ -90,6 +89,11 @@ H5P.VideoMedial = (function ($) {
         mutedCallbackWrapper();
         volumeCallbackWrapper();
       }, 1500);
+
+      // Handle playback state changes.
+      player.on('play', () => self.trigger('stateChange', H5P.Video.PLAYING));
+      player.on('pause', () => self.trigger('stateChange', H5P.Video.PAUSED));
+      player.on('ended', () => self.trigger('stateChange', H5P.Video.ENDED));
     };
 
     var triggerh5p = function() {
@@ -104,6 +108,11 @@ H5P.VideoMedial = (function ($) {
         player.on('ready', function() {
           console.log('Player.js is ready');
           player.on('timeupdate', initialDuration);
+
+          // Track the percentage of video that has finished loading (buffered).
+          player.on('progress', (data) => {
+            buffered = data.percent;
+          });
 
           // play() won't play if called from the ready event, but we have to play to get the duration which H5P needs before it can be started
           player.mute();
@@ -249,7 +258,6 @@ H5P.VideoMedial = (function ($) {
      * @returns {Number}
      */
     self.getDuration = function () {
-console.log("duration:"+duration);
       return duration;
     };
 
@@ -260,7 +268,7 @@ console.log("duration:"+duration);
      * @returns {Number} Between 0 and 100
      */
     self.getBuffered = function () {
-        // Not supported yet
+        return buffered;
     };
 
     /**
