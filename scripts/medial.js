@@ -237,7 +237,9 @@ H5P.VideoMedial = (function ($) {
       if (!player || !player.supports('method', 'setCurrentTime')) {
         return;
       }
-      
+
+      // Pause the video when seeking, otherwise the H5P player seems to loose sync with MEDIAL when seeking backwards
+      player.pause();
       player.setCurrentTime(time);
     };
 
