@@ -15,6 +15,7 @@ H5P.VideoMedial = (function ($) {
     var player;
     var videoPath;
     var playbackRate = 1;
+    var duration, position, volume, isMuted;
     var id = 'h5p-medial-' + numInstances;
     numInstances++;
 
@@ -42,38 +43,112 @@ H5P.VideoMedial = (function ($) {
       videoPath = getPath(sources[0].path);
 
       var element = $('<iframe/>', {
-            id: id,
-            src: videoPath,
-            width: width,
-            height: (width * (9/16)) + 8,
-            allow: "accelerometer; fullscreen"
-        });
-
-      $placeholder.replaceWith(element);
-
-      window.document.body.appendChild(Object.assign(document.createElement('script'), {
-        type: 'text/javascript',
-        src: 'https://cdn.embed.ly/player-0.1.0.min.js',
-        onload: () => playerJSLoaded()
-      }));
-    }
-
-    var playerJSLoaded = function() {
-      // Player.js doesn't like the object returned by JQuery $('#'+id), so use a standard call here.
-      var frame = document.getElementById(id);
-      player = new playerjs.Player(frame);
-
-      player.on('ready', () => {
-        console.log('Player.js ready');
-        self.trigger('loaded');
-        self.trigger('ready');
-        // Trigger stateChange will cause the Interactive video overlay to be shown.
-        self.trigger('stateChange');
+        id: id,
+        src: videoPath,
+        width: width,
+        height: (width * (9/16)) + 8,
+        allow: "accelerometer; fullscreen"
       });
 
-      console.log('Player.js loaded');
+      element.on('load', loadPlayerJS);
+
+      $placeholder.replaceWith(element);
     };
 
+    
+    var loadPlayerJS = function() {
+      if (typeof playerjs == 'undefined') {
+        window.document.body.appendChild(Object.assign(document.createElement('script'), {
+          type: 'text/javascript',
+          src: 'https://cdn.embed.ly/player-0.1.0.js',
+          onload: () => playerJSLoaded()
+         }));
+      } else {
+        playerJSLoaded();
+      }
+
+    };
+
+    var timeupdate = function(data) {
+      console.log(data);
+      duration = data.duration;
+      position = data.seconds;
+    };
+
+    var triggerh5p = function() {
+        if (typeof duration != 'undefined' &&
+            typeof isMuted != 'undefined' &&
+            typeof volume != 'undefined') {
+              self.trigger('loaded');
+              self.trigger('ready');
+              // Trigger stateChange will cause the Interactive video overlay to be shown.
+              self.trigger('stateChange');  
+        }
+    };
+
+    var playerJSLoaded = function() {
+        player = new playerjs.Player(id);
+        player.on('ready', function() {
+          console.log('Player.js is ready');
+
+          player.on('timeupdate', timeupdate);
+          durationCallbackWrapper(triggerh5p);
+          mutedCallbackWrapper(triggerh5p);
+          volumeCallbackWrapper(triggerh5p);
+
+          setInterval(function() {
+            mutedCallbackWrapper();
+            volumeCallbackWrapper();
+          }, 1500);
+
+          console.log('Player.js loaded');
+        });
+    };
+
+    var volumeCallbackWrapper = async function(call) {
+      const p = new Promise((resolve) => {
+        player.getVolume((value) => {
+            resolve(value);
+        });
+      });
+
+      volume = await p;
+
+      if (typeof call != 'undefined') {
+          call();
+      }
+      console.log("Volume: "+volume);
+    };
+
+    var durationCallbackWrapper = async function(call) {
+      const p = new Promise((resolve) => {
+        player.getDuration((value) => {
+            resolve(value);
+        });
+      });
+
+      duration = await p;
+
+      if (typeof call != 'undefined') {
+          call();
+      }
+      console.log("Duration: "+duration);
+    };
+
+    var mutedCallbackWrapper = async function(call) {
+      const p = new Promise((resolve) => {
+        player.getMuted((value) => {
+            resolve(value);
+        });
+      });
+
+      isMuted = await p;
+
+      if (typeof call != 'undefined') {
+          call();
+      }
+      console.log("isMuted: "+isMuted);
+    };
 
     /**
      * Indicates if the video must be clicked for it to start playing.
@@ -174,11 +249,7 @@ H5P.VideoMedial = (function ($) {
      * @returns {Number}
      */
     self.getCurrentTime = function () {
-      if (!player || !player.supports('method', 'getCurrentTime')) {
-        return;
-      }
-      
-      return player.getCurrentTime();
+      return position;
     };
 
     /**
@@ -188,11 +259,9 @@ H5P.VideoMedial = (function ($) {
      * @returns {Number}
      */
     self.getDuration = function () {
-      if (!player || !player.supports('method', 'getDuration')) {
-        return;
-      }
-      
-      return player.getDuration();
+console.log("getDuration");
+console.log(duration);
+      return duration;
     };
 
     /**
@@ -238,11 +307,7 @@ H5P.VideoMedial = (function ($) {
      * @returns {Boolean}
      */
     self.isMuted = function () {
-      if (!player || !player.supports('method', 'getMuted')) {
-        return;
-      }
-      
-      return player.getMuted();
+      return isMuted;
     };
 
     /**
@@ -252,11 +317,7 @@ H5P.VideoMedial = (function ($) {
      * @returns {Number} Between 0 and 100.
      */
     self.getVolume = function () {
-      if (!player || !player.supports('method', 'getVolume')) {
-        return;
-      }
-      
-      return player.getVolume();
+      return volume;
     };
 
     /**
@@ -416,4 +477,3 @@ H5P.VideoMedial = (function ($) {
 // Register video handler
 H5P.videoHandlers = H5P.videoHandlers || [];
 H5P.videoHandlers.push(H5P.VideoMedial);
-
