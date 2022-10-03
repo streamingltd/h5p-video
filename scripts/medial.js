@@ -75,32 +75,39 @@ H5P.VideoMedial = (function ($) {
       position = data.seconds;
     };
 
+    var initialDuration = function(data) {
+      player.off('timeupdate', initialDuration);
+      // Put the player back to the start now that we (hopefuly) have the duration.
+      player.setCurrentTime(0);
+      player.pause();
+      player.unmute();
+      duration = data.duration;
+      position = data.seconds;
+      player.on('timeupdate', timeupdate);
+      mutedCallbackWrapper(volumeCallbackWrapper);
+      volumeCallbackWrapper(triggerh5p);
+      setInterval(function() {
+        mutedCallbackWrapper();
+        volumeCallbackWrapper();
+      }, 1500);
+    };
+
     var triggerh5p = function() {
-        if (typeof duration != 'undefined' &&
-            typeof isMuted != 'undefined' &&
-            typeof volume != 'undefined') {
-              self.trigger('loaded');
-              self.trigger('ready');
-              // Trigger stateChange will cause the Interactive video overlay to be shown.
-              self.trigger('stateChange');  
-        }
+      self.trigger('loaded');
+      self.trigger('ready');
+      // Trigger stateChange will cause the Interactive video overlay to be shown.
+      self.trigger('stateChange');  
     };
 
     var playerJSLoaded = function() {
         player = new playerjs.Player(id);
         player.on('ready', function() {
           console.log('Player.js is ready');
+          player.on('timeupdate', initialDuration);
 
-          player.on('timeupdate', timeupdate);
-          durationCallbackWrapper(triggerh5p);
-          mutedCallbackWrapper(triggerh5p);
-          volumeCallbackWrapper(triggerh5p);
-
-          setInterval(function() {
-            mutedCallbackWrapper();
-            volumeCallbackWrapper();
-          }, 1500);
-
+          // play() won't play if called from the ready event, but we have to play to get the duration which H5P needs before it can be started
+          player.mute();
+          player.play();
           console.log('Player.js loaded');
         });
     };
@@ -117,22 +124,6 @@ H5P.VideoMedial = (function ($) {
       if (typeof call != 'undefined') {
           call();
       }
-      console.log("Volume: "+volume);
-    };
-
-    var durationCallbackWrapper = async function(call) {
-      const p = new Promise((resolve) => {
-        player.getDuration((value) => {
-            resolve(value);
-        });
-      });
-
-      duration = await p;
-
-      if (typeof call != 'undefined') {
-          call();
-      }
-      console.log("Duration: "+duration);
     };
 
     var mutedCallbackWrapper = async function(call) {
@@ -147,7 +138,6 @@ H5P.VideoMedial = (function ($) {
       if (typeof call != 'undefined') {
           call();
       }
-      console.log("isMuted: "+isMuted);
     };
 
     /**
@@ -259,8 +249,7 @@ H5P.VideoMedial = (function ($) {
      * @returns {Number}
      */
     self.getDuration = function () {
-console.log("getDuration");
-console.log(duration);
+console.log("duration:"+duration);
       return duration;
     };
 
