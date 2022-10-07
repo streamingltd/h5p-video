@@ -459,7 +459,7 @@ H5P.VideoMedial = (function ($) {
   var getPath = function (url) {
     url = new URL(url);
     var split = url.pathname.split('/');
-    return url.protocol+'//'+url.host+'/player?autostart=n&videoId='+split[2]+'&captions=y&chapterId=0&playerJs=n';
+    return url.protocol+'//'+url.host+'/player?autostart=n&videoId='+split[2]+'&captions=y&chapterId=0&playerJs=y&h5p=y';
   }
 
   /** @private */
