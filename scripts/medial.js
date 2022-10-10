@@ -60,7 +60,7 @@ H5P.VideoMedial = (function ($) {
       if (typeof playerjs == 'undefined') {
         window.document.body.appendChild(Object.assign(document.createElement('script'), {
           type: 'text/javascript',
-          src: 'https://cdn.embed.ly/player-0.1.0.js',
+          src: 'https://cdn.embed.ly/player-0.1.0.min.js',
           onload: () => playerJSLoaded()
          }));
       } else {
@@ -106,7 +106,6 @@ H5P.VideoMedial = (function ($) {
     var playerJSLoaded = function() {
         player = new playerjs.Player(id);
         player.on('ready', function() {
-          console.log('Player.js is ready');
           player.on('timeupdate', initialDuration);
 
           // Track the percentage of video that has finished loading (buffered).
@@ -117,7 +116,6 @@ H5P.VideoMedial = (function ($) {
           // play() won't play if called from the ready event, but we have to play to get the duration which H5P needs before it can be started
           player.mute();
           player.play();
-          console.log('Player.js loaded');
         });
     };
 
