@@ -16,15 +16,25 @@ H5P.VideoPanopto = (function ($) {
 
     var player;
     var playbackRate = 1;
-    let canHasPlay;
+    let canHasAutoplay;
     var id = 'h5p-panopto-' + numInstances;
     numInstances++;
+    let isLoaded = false;
 
     var $wrapper = $('<div/>');
     var $placeholder = $('<div/>', {
       id: id,
       html: '<div>' + l10n.loading + '</div>'
     }).appendTo($wrapper);
+
+    // Determine autoplay/play.
+    try {
+      if (document.featurePolicy.allowsFeature('autoplay') !== false) {
+        canHasAutoplay = true;
+      }
+    }
+    catch (err) {}
+    let canHasPlay = !canHasAutoplay;
 
     /**
      * Use the Panopto API to create a new player
@@ -65,8 +75,11 @@ H5P.VideoPanopto = (function ($) {
         },
         events: {
           onIframeReady: function () {
+            isLoaded = true;
             $placeholder.children(0).text('');
-            player.loadVideo();
+            if (canHasAutoplay) {
+              player.loadVideo();
+            }
             self.trigger('containerLoaded');
             self.trigger('resize'); // Avoid black iframe if loading is slow
           },
@@ -277,7 +290,7 @@ H5P.VideoPanopto = (function ($) {
 
       player.unmuteVideo();
 
-      // The volume is set to 0 when the browser prevents autoplay, 
+      // The volume is set to 0 when the browser prevents autoplay,
       // causing there to be no sound despite unmuting
       self.setVolume(self.volume);
     };
@@ -294,6 +307,16 @@ H5P.VideoPanopto = (function ($) {
       }
 
       return player.isMuted();
+    };
+
+    /**
+     * Check video is loaded and ready to play
+     *
+     * @public
+     * @returns {Boolean}
+     */
+    self.isLoaded = function () {
+      return isLoaded;
     };
 
     /**

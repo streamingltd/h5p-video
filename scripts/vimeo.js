@@ -31,6 +31,7 @@ H5P.VideoVimeo = (function ($) {
     let loadingFailedTimeout;
     let failedLoading = false;
     let ratio = 9/16;
+    let isLoaded = false;
 
     const LOADING_TIMEOUT_IN_SECONDS = 8;
 
@@ -62,9 +63,10 @@ H5P.VideoVimeo = (function ($) {
       const MIN_WIDTH = 200;
       const width = Math.max($wrapper.width(), MIN_WIDTH);
 
+      const canHasControls = options.controls || self.pressToPlay;
       const embedOptions = {
         url: sources[0].path,
-        controls: options.controls ? true : false,
+        controls: canHasControls,
         responsive: true,
         dnt: true,
         // Hardcoded autoplay to false to avoid playing videos on init
@@ -72,7 +74,9 @@ H5P.VideoVimeo = (function ($) {
         loop: options.loop ? true : false,
         playsinline: true,
         quality: 'auto',
-        width: width
+        width: width,
+        muted: false,
+        keyboard: canHasControls,
       };
 
       // Create a new player
@@ -107,12 +111,14 @@ H5P.VideoVimeo = (function ($) {
      * @param {Vimeo.Player} player
      */
     const registerVimeoPlayerEventListeneners = (player) => {
+      let isFirstPlay, tracks;
       player.on('loaded', async () => {
-
+        isFirstPlay = true;
+        isLoaded = true;
         clearTimeout(loadingFailedTimeout);
 
         const videoDetails = await getVimeoVideoMetadata(player);
-        const { tracks } = videoDetails;
+        tracks = videoDetails.tracks.options;
         currentTextTrack = tracks.current;
         duration = videoDetails.duration;
         qualities = videoDetails.qualities;
@@ -132,9 +138,17 @@ H5P.VideoVimeo = (function ($) {
 
         self.trigger('ready');
         self.trigger('loaded');
-        self.trigger('captions', tracks.options);
         self.trigger('qualityChange', currentQuality);
         self.trigger('resize');
+      });
+
+      player.on('play', () => {
+        if (isFirstPlay) {
+          isFirstPlay = false;
+          if (tracks.length) {
+            self.trigger('captions', tracks);
+          }
+        }
       });
 
       // Handle playback state changes.
@@ -239,6 +253,13 @@ H5P.VideoVimeo = (function ($) {
       ]).then(data => massageVideoMetadata(data));
     }
 
+    try {
+      if (document.featurePolicy.allowsFeature('autoplay') === false) {
+        self.pressToPlay = true;
+      }
+    }
+    catch (err) {}
+
     /**
      * Appends the video player to the DOM.
      *
@@ -329,7 +350,8 @@ H5P.VideoVimeo = (function ($) {
      * @param {Number} time
      */
     self.seek = async (time) => {
-      currentTime = await player.setCurrentTime(time);
+      currentTime = time;
+      await player.setCurrentTime(time);
     };
 
     /**
@@ -384,6 +406,16 @@ H5P.VideoVimeo = (function ($) {
      */
     self.isMuted = () => {
       return isMuted;
+    };
+
+    /**
+     * Whether the video is loaded.
+     *
+     * @public
+     * @returns {Boolean} True if the video is muted, false otherwise
+     */
+    self.isLoaded = () => {
+      return isLoaded;
     };
 
     /**
