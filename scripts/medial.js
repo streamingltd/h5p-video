@@ -77,8 +77,8 @@ H5P.VideoMedial = (function ($) {
     var initialDuration = function(data) {
       player.off('timeupdate', initialDuration);
       // Put the player back to the start now that we (hopefuly) have the duration.
-      player.setCurrentTime(0);
       player.pause();
+      player.setCurrentTime(0);
       player.unmute();
       duration = data.duration;
       position = data.seconds;
