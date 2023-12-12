@@ -47,7 +47,7 @@ H5P.VideoMedial = (function ($) {
         src: videoPath,
         width: width,
         height: (width * (9/16)) + 8,
-        allow: "accelerometer; fullscreen"
+        allow: "accelerometer; autoplay; fullscreen"
       });
 
       element.on('load', loadPlayerJS);
@@ -104,19 +104,19 @@ H5P.VideoMedial = (function ($) {
     };
 
     var playerJSLoaded = function() {
-        player = new playerjs.Player(id);
-        player.on('ready', function() {
-          player.on('timeupdate', initialDuration);
+      player = new playerjs.Player(id);
+      player.on('ready', function() {
+      player.on('timeupdate', initialDuration);
 
-          // Track the percentage of video that has finished loading (buffered).
-          player.on('progress', (data) => {
-            buffered = data.percent;
-          });
-
-          // play() won't play if called from the ready event, but we have to play to get the duration which H5P needs before it can be started
-          player.mute();
-          player.play();
+        // Track the percentage of video that has finished loading (buffered).
+        player.on('progress', (data) => {
+          buffered = data.percent;
         });
+
+        // play() won't play if called from the ready event, but we have to play to get the duration which H5P needs before it can be started
+        player.mute();
+        player.play();
+      });
     };
 
     var volumeCallbackWrapper = async function(call) {
@@ -207,7 +207,6 @@ H5P.VideoMedial = (function ($) {
         self.on('ready', self.play);
         return;
       }
-
       player.play();
     };
 
