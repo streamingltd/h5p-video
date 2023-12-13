@@ -14,6 +14,7 @@ H5P.VideoMedial = (function ($) {
 
     var player;
     var videoPath;
+    var bc;
     var playbackRate = 1;
     var duration, position, volume, isMuted, buffered;
     var id = 'h5p-medial-' + numInstances;
@@ -53,6 +54,12 @@ H5P.VideoMedial = (function ($) {
       element.on('load', loadPlayerJS);
 
       $placeholder.replaceWith(element);
+
+      window.addEventListener("message", function(evt) {
+          if (evt.data.location == videoPath) {
+              initialDuration(evt.data);
+          }
+      }, false);
     };
 
     
@@ -66,7 +73,6 @@ H5P.VideoMedial = (function ($) {
       } else {
         playerJSLoaded();
       }
-
     };
 
     var timeupdate = function(data) {
@@ -75,25 +81,8 @@ H5P.VideoMedial = (function ($) {
     };
 
     var initialDuration = function(data) {
-      player.off('timeupdate', initialDuration);
-      // Put the player back to the start now that we (hopefuly) have the duration.
-      player.pause();
-      player.setCurrentTime(0);
-      player.unmute();
       duration = data.duration;
-      position = data.seconds;
-      player.on('timeupdate', timeupdate);
-      mutedCallbackWrapper(volumeCallbackWrapper);
-      volumeCallbackWrapper(triggerh5p);
-      setInterval(function() {
-        mutedCallbackWrapper();
-        volumeCallbackWrapper();
-      }, 1500);
-
-      // Handle playback state changes.
-      player.on('play', () => self.trigger('stateChange', H5P.Video.PLAYING));
-      player.on('pause', () => self.trigger('stateChange', H5P.Video.PAUSED));
-      player.on('ended', () => self.trigger('stateChange', H5P.Video.ENDED));
+      position = 0;
     };
 
     var triggerh5p = function() {
@@ -106,16 +95,23 @@ H5P.VideoMedial = (function ($) {
     var playerJSLoaded = function() {
       player = new playerjs.Player(id);
       player.on('ready', function() {
-      player.on('timeupdate', initialDuration);
-
+      player.on('timeupdate', timeupdate);
         // Track the percentage of video that has finished loading (buffered).
         player.on('progress', (data) => {
           buffered = data.percent;
         });
 
-        // play() won't play if called from the ready event, but we have to play to get the duration which H5P needs before it can be started
-        player.mute();
-        player.play();
+        mutedCallbackWrapper(volumeCallbackWrapper);
+        volumeCallbackWrapper(triggerh5p);
+        setInterval(function() {
+          mutedCallbackWrapper();
+          volumeCallbackWrapper();
+        }, 1500);
+
+        // Handle playback state changes.
+        player.on('play', () => self.trigger('stateChange', H5P.Video.PLAYING));
+        player.on('pause', () => self.trigger('stateChange', H5P.Video.PAUSED));
+        player.on('ended', () => self.trigger('stateChange', H5P.Video.ENDED));
       });
     };
 
