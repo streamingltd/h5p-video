@@ -11,13 +11,15 @@ H5P.Video = (function ($, ContentCopyrights, MediaCopyright, handlers) {
    * @param {Object} parameters.a11y Accessibility options
    * @param {Boolean} [parameters.startAt] Start time of video
    * @param {Number} id Content identifier
+   * @param {Object} [extras] Extra parameters.
    */
-  function Video(parameters, id, extras) {
+  function Video(parameters, id, extras = {}) {
     var self = this;
     self.oldTime = extras.previousState?.time;
     self.contentId = id;
     self.WAS_RESET = false;
     self.startAt = parameters.startAt || 0;
+    self.hasNoAutoPause = parameters.playback?.hasNoAutoPause || false;
 
     // Ref youtube.js - ipad & youtube - issue
     self.pressToPlay = false;
@@ -52,9 +54,9 @@ H5P.Video = (function ($, ContentCopyrights, MediaCopyright, handlers) {
 
     parameters.a11y = parameters.a11y || [];
     parameters.playback = parameters.playback || {};
-    parameters.visuals = $.extend(true, parameters.visuals, {
-      disableFullscreen: false
-    });
+    parameters.visuals = $.extend(
+      true, { disableFullscreen: false }, parameters.visuals
+    );
 
     /** @private */
     var sources = [];
@@ -111,7 +113,7 @@ H5P.Video = (function ($, ContentCopyrights, MediaCopyright, handlers) {
             self.play();
           }
         }
-        else if (state !== Video.PAUSED) {
+        else if (state !== Video.PAUSED && state !== Video.ENDED && !self.hasNoAutoPause) {
           self.autoPaused = true;
           self.pause();
         }
@@ -129,7 +131,7 @@ H5P.Video = (function ($, ContentCopyrights, MediaCopyright, handlers) {
      * @param {jQuery} $container
      */
     self.attach = function ($container) {
-      $container.addClass('h5p-video').html('');
+      $container.addClass('h5p-video h5p-theme').html('');
 
       if (self.appendTo !== undefined) {
         self.appendTo($container);
@@ -164,10 +166,19 @@ H5P.Video = (function ($, ContentCopyrights, MediaCopyright, handlers) {
     * @returns {object} Current state.
     */
     self.getCurrentState = function () {
-      return {
-        time: self.getCurrentTime() || self.oldTime,
-      };
+      if (self.getCurrentTime) {
+        return {
+          time: self.getCurrentTime() || self.oldTime,
+        };
+      }
     };
+
+    /**
+     * The two functions below needs to be defined in this base class,
+     * since it is used in this class even if no handler was found.
+     */
+    self.seek = () => {};
+    self.pause = () => {};
 
     /**
     * @public
@@ -176,14 +187,18 @@ H5P.Video = (function ($, ContentCopyrights, MediaCopyright, handlers) {
     */
     self.resetTask = function () {
       delete self.oldTime;
-      if (self.resetPlayback) {
-        self.resetPlayback(parameters.startAt || 0);
-      }
-      else {
-        self.seek(parameters.startAt || 0);
-        self.pause();
-        self.WAS_RESET = true;
-      }
+      self.resetPlayback(parameters.startAt || 0);
+    };
+
+    /**
+     * Default implementation of resetPlayback. May be overridden by sub classes.
+     *
+     * @param {*} startAt
+     */
+    self.resetPlayback = startAt => {
+      self.seek(startAt);
+      self.pause();
+      self.WAS_RESET = true;
     };
 
     // Resize the video when we know its aspect ratio
@@ -258,7 +273,7 @@ H5P.Video = (function ($, ContentCopyrights, MediaCopyright, handlers) {
    * @constant {Number}
    */
   Video.VIDEO_CUED = 5;
-  
+
 
   // Used to convert between html and text, since URLs have html entities.
   var $cleaner = H5P.jQuery('<div/>');
@@ -274,6 +289,40 @@ H5P.Video = (function ($, ContentCopyrights, MediaCopyright, handlers) {
     this.label = label;
     this.value = value;
   };
+
+ /**
+  * Determine whether video can be autoplayed.
+  * @returns {Promise<boolean>} Whether autoplay is allowed.
+  */
+  Video.isAutoplayAllowed = async () => {
+   if (document.featurePolicy?.allowsFeature('autoplay')) {
+     return true; // Browser supports `featurePolicy` and can tell directly
+   }
+
+   const video = document.createElement('video');
+
+   /*
+    * Without a video source, the play Promise will be rejected with an error
+    * if it cannot be autoplayed, but not resolve at all if it can be
+    * autoplayed. Using a timeout to detect the latter case here.
+    */
+   const timeoutMs = 50; // If play promise rejects, then within few ms
+
+   const timeoutPromise = new Promise((resolve) => {
+     window.setTimeout(() => {
+       resolve(true); // Timeout reached, autoplay is allowed
+     }, timeoutMs);
+   });
+
+   let result;
+   try {
+     result = (await Promise.race([video.play(), timeoutPromise])) ?? true;
+   } catch (error) {
+     result = false;
+   }
+
+   return result;
+ };
 
   /** @constant {Boolean} */
   Video.IE11_PLAYBACK_RATE_FIX = (navigator.userAgent.match(/Trident.*rv[ :]*11\./) ? true : false);

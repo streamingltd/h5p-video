@@ -47,7 +47,7 @@ H5P.VideoPanopto = (function ($) {
         return;
       }
 
-      if (window.EmbedApi === undefined) {
+      if (typeof EmbedApi === 'undefined') {
         // Load API first
         loadAPI(create);
         return;
@@ -57,6 +57,9 @@ H5P.VideoPanopto = (function ($) {
       if (width < 200) {
         width = 200;
       }
+
+      // Clear placeholder since iframe is appended and we don't want resize issues
+      $placeholder.html('');
 
       const videoId = getId(sources[0].path);
       player = new EmbedApi(id, {
@@ -77,7 +80,6 @@ H5P.VideoPanopto = (function ($) {
         events: {
           onIframeReady: function () {
             isPlayerReady = true;
-            $placeholder.children(0).text('');
             if (options.autoplay && canHasAutoplay) {
               player.loadVideo();
               isLoaded = true;
@@ -141,7 +143,6 @@ H5P.VideoPanopto = (function ($) {
             }
           },
           onLoginShown: function () {
-            $placeholder.children().first().remove(); // Remove loading message
             self.trigger('loaded'); // Resize parent
           }
         }
@@ -516,7 +517,7 @@ H5P.VideoPanopto = (function ($) {
    * @returns {String} Panopto video identifier
    */
   var getId = function (url) {
-    const matches = url.match(/^[^\/]+:\/\/([^\/]*panopto\.[^\/]+)\/Panopto\/.+\?id=(.+)$/);
+    const matches = url.match(/^[^\/]+:\/\/([^\/]+)\/Panopto\/.+\?id=(.+)$/);
     if (matches && matches.length === 3) {
       return [matches[1], matches[2]];
     }
@@ -537,7 +538,7 @@ H5P.VideoPanopto = (function ($) {
     else {
       // Load the API our self
       var tag = document.createElement('script');
-      tag.src = 'https://developers.panopto.com/scripts/embedapi.min.js';
+      tag.src = 'https://developers.panopto.com/scripts/v1.2.0/embedapi.min.js';
       var firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
       window.onPanoptoEmbedApiReady = loaded;
