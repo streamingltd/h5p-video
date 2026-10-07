@@ -170,6 +170,7 @@ H5P.VideoMedial = (function ($) {
      */
     self.getQualities = function () {
         // Not yet supported
+        return [];
     };
 
     /**
@@ -179,7 +180,7 @@ H5P.VideoMedial = (function ($) {
      * @returns {String}
      */
     self.getQuality = function () {
-        // Not yet supported
+        return "";
     };
 
     /**
@@ -423,7 +424,11 @@ H5P.VideoMedial = (function ($) {
    * @returns {Boolean}
    */
   Medial.canPlay = function (sources) {
-    return getId(sources[0].path);
+    if (getId(sources[0].path) !== false) {
+      return true;
+    }
+
+    return false;
   };
 
   /**
@@ -442,10 +447,11 @@ H5P.VideoMedial = (function ($) {
     // Part 1 will be "Player", part two should be 8 alpha numeric characters.
     if (split.length == 3 && split[1] == "Player" && split[2].length == 8) {
       var pattern = new RegExp('^[a-zA-Z0-9]+$');
-      if (pattern.test()) {
+      if (pattern.test(split[2])) {
         return split[2];
       }
     }
+    return false;
   };
 
 
