@@ -17,6 +17,7 @@ H5P.VideoMedial = (function ($) {
     var bc;
     var playbackRate = 1;
     var duration, position, volume, isMuted, buffered;
+    var isPlayerReady = false;
     var id = 'h5p-medial-' + numInstances;
     numInstances++;
 
@@ -95,23 +96,24 @@ H5P.VideoMedial = (function ($) {
     var playerJSLoaded = function() {
       player = new playerjs.Player(id);
       player.on('ready', function() {
-      player.on('timeupdate', timeupdate);
-        // Track the percentage of video that has finished loading (buffered).
-        player.on('progress', (data) => {
-          buffered = data.percent;
-        });
+        isPlayerReady = true;
+        player.on('timeupdate', timeupdate);
+          // Track the percentage of video that has finished loading (buffered).
+          player.on('progress', (data) => {
+            buffered = data.percent;
+          });
 
-        mutedCallbackWrapper(volumeCallbackWrapper);
-        volumeCallbackWrapper(triggerh5p);
-        setInterval(function() {
-          mutedCallbackWrapper();
-          volumeCallbackWrapper();
-        }, 1500);
+          mutedCallbackWrapper(volumeCallbackWrapper);
+          volumeCallbackWrapper(triggerh5p);
+          setInterval(function() {
+            mutedCallbackWrapper();
+            volumeCallbackWrapper();
+          }, 1500);
 
-        // Handle playback state changes.
-        player.on('play', () => self.trigger('stateChange', H5P.Video.PLAYING));
-        player.on('pause', () => self.trigger('stateChange', H5P.Video.PAUSED));
-        player.on('ended', () => self.trigger('stateChange', H5P.Video.ENDED));
+          // Handle playback state changes.
+          player.on('play', () => self.trigger('stateChange', H5P.Video.PLAYING));
+          player.on('pause', () => self.trigger('stateChange', H5P.Video.PAUSED));
+          player.on('ended', () => self.trigger('stateChange', H5P.Video.ENDED));
       });
     };
 
@@ -170,7 +172,6 @@ H5P.VideoMedial = (function ($) {
      */
     self.getQualities = function () {
         // Not yet supported
-        return [];
     };
 
     /**
@@ -180,7 +181,7 @@ H5P.VideoMedial = (function ($) {
      * @returns {String}
      */
     self.getQuality = function () {
-        return "";
+        // Not yet supported
     };
 
     /**
@@ -301,6 +302,16 @@ H5P.VideoMedial = (function ($) {
      */
     self.isMuted = function () {
       return isMuted;
+    };
+
+    /**
+     * Check video is loaded and ready to play
+     *
+     * @public
+     * @returns {Boolean}
+     */
+    self.isLoaded = function () {
+      return isPlayerReady;
     };
 
     /**
